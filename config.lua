@@ -13,4 +13,4 @@ Config.PermittedJobs = {
 }
 
 -- Commands --
-Config.BillingCommand = 'billing'
+Config.BillingCommand = 'facturation' -- french

@@ -15,7 +15,7 @@ local function comma_value(amount)
     return formatted
 end
 
-function isAllowedToBill(player)
+local function isAllowedToBill(player)
     local playerJob = player.PlayerData.job
 
     for k, v in pairs(Config.PermittedJobs) do
@@ -31,7 +31,7 @@ function isAllowedToBill(player)
     return false
 end
 
-function getPendingBilled(source)
+local function getPendingBilled(source)
     local src = source
     local player = QBCore.Functions.GetPlayer(src)
     local result = MySQL.Sync.fetchAll('SELECT * FROM bills WHERE sender_citizenid = ? AND status = ?', {
@@ -42,7 +42,7 @@ function getPendingBilled(source)
     return result
 end
 
-function getPaidBilled(source)
+local function getPaidBilled(source)
     local src = source
     local player = QBCore.Functions.GetPlayer(src)
     local result = MySQL.Sync.fetchAll('SELECT * FROM bills WHERE sender_citizenid = ? AND status = ?', {
@@ -53,7 +53,7 @@ function getPaidBilled(source)
     return result
 end
 
-function getBillsToPay(source)
+local function getBillsToPay(source)
     local src = source
     local player = QBCore.Functions.GetPlayer(src)
     local result = MySQL.Sync.fetchAll('SELECT * FROM bills WHERE recipient_citizenid = ? AND status = ?', {
@@ -64,7 +64,7 @@ function getBillsToPay(source)
     return result
 end
 
-function getPaidBills(source)
+local function getPaidBills(source)
     local src = source
     local player = QBCore.Functions.GetPlayer(src)
     local result = MySQL.Sync.fetchAll('SELECT * FROM bills WHERE recipient_citizenid = ? AND status = ?', {
@@ -112,14 +112,14 @@ AddEventHandler('billing:server:sendBill', function(data)
             datetime
         }, function(result)
             if result > 0 then
-                TriggerClientEvent('QBCore:Notify', src, 'Bill sent for $' .. comma_value(billAmount) .. ' to ' .. recipientFullName, 'success')
-                TriggerClientEvent('QBCore:Notify', recipient.PlayerData.source, 'Bill received for $' .. comma_value(billAmount) .. ' from ' .. senderFullName .. ' "' .. senderAccount .. '"', 'success')
+                TriggerClientEvent('QBCore:Notify', src, Lang:t("info.bill_received_for", {value = comma_value(billAmount), to = recipientFullName}), 'success')
+                TriggerClientEvent('QBCore:Notify', recipient.PlayerData.source, Lang:t("info.bill_received_from", {value = comma_value(billAmount), from = senderFullName, senderAcc = senderAccount}), 'success')
             else
-                TriggerClientEvent('QBCore:Notify', src, 'Error sending bill', 'error')
+                TriggerClientEvent('QBCore:Notify', src, Lang:t("error.sending_bill"), 'error')
             end
         end)
     else
-        TriggerClientEvent('QBCore:Notify', src, "You are not permitted to bill for this account!", 'error')
+        TriggerClientEvent('QBCore:Notify', src, Lang:t("error.not_permitted"), 'error')
     end
 end)
 
@@ -131,7 +131,7 @@ AddEventHandler('billing:server:getPendingBilled', function()
     if bills and bills[1] then
         TriggerClientEvent('billing:client:openPendingBilledMenu', src, bills)
     else
-        TriggerClientEvent('QBCore:Notify', src, 'Error retrieving bills', 'error')
+        TriggerClientEvent('QBCore:Notify', src, Lang:t("error.retrieving_bills"), 'error')
     end
 end)
 
@@ -143,7 +143,7 @@ AddEventHandler('billing:server:getPaidBilled', function()
     if bills and bills[1] then
         TriggerClientEvent('billing:client:openPaidBilledMenu', src, bills)
     else
-        TriggerClientEvent('QBCore:Notify', src, 'Error retrieving bills', 'error')
+        TriggerClientEvent('QBCore:Notify', src, Lang:t("error.retrieving_bills"), 'error')
     end
 end)
 
@@ -155,7 +155,7 @@ AddEventHandler('billing:server:getBillsToPay', function()
     if bills and bills[1] then
         TriggerClientEvent('billing:client:openBillsToPayMenu', src, bills)
     else
-        TriggerClientEvent('QBCore:Notify', src, 'Error retrieving bills', 'error')
+        TriggerClientEvent('QBCore:Notify', src, Lang:t("error.retrieving_bills"), 'error')
     end
 end)
 
@@ -167,7 +167,7 @@ AddEventHandler('billing:server:getPaidBills', function()
     if bills and bills[1] then
         TriggerClientEvent('billing:client:openPaidBillsMenu', src, bills)
     else
-        TriggerClientEvent('QBCore:Notify', src, 'Error retrieving bills', 'error')
+        TriggerClientEvent('QBCore:Notify', src, Lang:t("error.retrieving_bills"), 'error')
     end
 end)
 
@@ -184,10 +184,10 @@ AddEventHandler('billing:server:payBill', function(data)
         local datetime = os.date('%Y-%m-%d %H:%M:%S')
 
         if sender then
-            TriggerClientEvent('QBCore:Notify', sender.PlayerData.source, 'Bill #' .. bill.id .. ': $' .. comma_value(bill.amount) .. ' paid by ' .. bill.recipient_name, 'success')
+            TriggerClientEvent('QBCore:Notify', sender.PlayerData.source, Lang:t("success.bill_paid_by", {bill_number = bill.id, amount = comma_value(bill.amount), client = bill.recepient_name}), 'success')
         end
 
-        TriggerClientEvent('QBCore:Notify', src, 'Bill #' .. bill.id .. ': $' .. comma_value(bill.amount) .. ' paid to ' .. bill.sender_name .. ' "' .. bill.sender_account .. '"', 'success')
+        TriggerClientEvent('QBCore:Notify', src, Lang:t("success.bill_piad_to", {bill_number = bill.id, amount = comma_value(bill.amount), bill_sender = bill.sender_name, sender_acc = bill.sender_account}), 'success')
         MySQL.Async.execute('UPDATE bills SET status = ?, status_date = ? WHERE id = ? AND bill_date = ? AND amount = ? AND sender_account = ? AND recipient_citizenid = ? AND status = ?', {
             'Paid',
             datetime,
@@ -199,7 +199,7 @@ AddEventHandler('billing:server:payBill', function(data)
             'Unpaid'
         })
     else
-        TriggerClientEvent('QBCore:Notify', src, 'Not enough money in your bank account!', 'error')
+        TriggerClientEvent('QBCore:Notify', src, Lang:t("error.not_enough_money_in_bank"), 'error')
     end
 end)
 
@@ -219,10 +219,10 @@ AddEventHandler('billing:server:deleteBill', function(data)
     })
 
     if recipient then
-        TriggerClientEvent('QBCore:Notify', recipient.PlayerData.source, 'Bill #' .. bill.id .. ': $' .. comma_value(bill.amount) .. ' due to ' .. bill.sender_name .. ' "' .. bill.sender_account .. '" has been canceled', 'success')
+        TriggerClientEvent('QBCore:Notify', recipient.PlayerData.source, Lang:t("info.bill_due_to_canceled", {bill_number = bill.id, amount = comma_value(bill.amount), bill_sender = bill.sender_name, sender_acc = bill.sender_account}), 'success')
     end
 
-    TriggerClientEvent('QBCore:Notify', src, 'Bill canceled', 'success')
+    TriggerClientEvent('QBCore:Notify', src, Lang:t("info.bill_canceled"), 'success')
 end)
 
 -- Callbacks --
